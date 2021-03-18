@@ -41,13 +41,15 @@ if args.cuda:
 
 all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = lt.dataloader(args.datapath)
 
-TrainImgLoader = torch.utils.data.DataLoader(
-    DA.myImageFloder(all_left_img, all_right_img, all_left_disp, True),
-    batch_size=12, shuffle=True, num_workers=8, drop_last=False)
+# TrainImgLoader = torch.utils.data.DataLoader(
+#     DA.myImageFloder(all_left_img, all_right_img, all_left_disp, True),
+#     batch_size=1, shuffle=True, num_workers=0, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
     DA.myImageFloder(test_left_img, test_right_img, test_left_disp, False),
-    batch_size=8, shuffle=False, num_workers=4, drop_last=False)
+    batch_size=1, shuffle=False, num_workers=0, drop_last=False)
+
+print(len(TestImgLoader))
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -112,7 +114,8 @@ def test(imgL, imgR, disp_true):
     if args.cuda:
         imgL, imgR, disp_true = imgL.cuda(), imgR.cuda(), disp_true.cuda()
     # ---------
-    mask = disp_true < 192
+    mask = disp_true < args.maxdisp
+    mask.detach_()
     # ----
 
     if imgL.shape[2] % 16 != 0:
@@ -132,20 +135,23 @@ def test(imgL, imgR, disp_true):
 
     with torch.no_grad():
         output3 = model(imgL, imgR)
-        output3 = torch.squeeze(output3)
+        output3 = torch.squeeze(output3, dim=0)
 
     if top_pad != 0:
         img = output3[:, top_pad:, :]
     else:
         img = output3
 
+
     if len(disp_true[mask]) == 0:
         loss = 0
     else:
-        loss = torch.mean(torch.abs(img[mask] - disp_true[
-            mask]))  # F.l1_loss(img[mask],disp_true[mask]) #torch.mean(torch.abs(img[mask]-disp_true[mask]))  # end-point-error
+        img=img*1.17
+        loss = torch.mean(torch.abs(img[mask]-disp_true[mask]))   # F.l1_loss(img[mask],disp_true[mask]) #torch.mean(torch.abs(img[mask]-disp_true[mask]))  # end-point-error
+        loss = loss.data.cuda()
 
-    return loss.data.cpu()
+    torch.cuda.empty_cache()
+    return loss
 
 
 def adjust_learning_rate(optimizer, epoch):
@@ -155,41 +161,44 @@ def adjust_learning_rate(optimizer, epoch):
 
 
 def main():
-    start_full_time = time.time()
-    for epoch in range(0, args.epochs):
-        print('This is %d-th epoch' % (epoch))
-        total_train_loss = 0
-        adjust_learning_rate(optimizer, epoch)
-
-        ## training ##
-        for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(TrainImgLoader):
-            start_time = time.time()
-
-            loss = train(imgL_crop, imgR_crop, disp_crop_L)
-            # print('Iter %d training loss = %.3f , time = %.2f' %(batch_idx, loss, time.time() - start_time))
-            total_train_loss += float(loss)
-        print('epoch %d total training loss = %.3f' % (epoch, total_train_loss / len(TrainImgLoader)))
-
-        # SAVE
-        savefilename = args.savemodel + '/checkpoint_' + str(epoch) + '.tar'
-        torch.save({
-            'epoch': epoch,
-            'state_dict': model.state_dict(),
-            'train_loss': total_train_loss / len(TrainImgLoader),
-        }, savefilename)
-
-        dict_save[epoch] = total_train_loss
-
-    print(dict_save)
-    print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
+    # start_full_time = time.time()
+    # for epoch in range(0, args.epochs):
+    #     print('This is %d-th epoch' % (epoch))
+    #     total_train_loss = 0
+    #     adjust_learning_rate(optimizer, epoch)
+    #
+    #     ## training ##
+    #     for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(TrainImgLoader):
+    #         start_time = time.time()
+    #
+    #         loss = train(imgL_crop, imgR_crop, disp_crop_L)
+    #         print('Iter %d training loss = %.3f , time = %.2f' %(batch_idx, loss, time.time() - start_time))
+    #         total_train_loss += float(loss)
+    #     print('epoch %d total training loss = %.3f' % (epoch, total_train_loss / len(TrainImgLoader)))
+    #
+    #     # SAVE
+    #     savefilename = args.savemodel + '/checkpoint_' + str(epoch) + '.tar'
+    #     torch.save({
+    #         'epoch': epoch,
+    #         'state_dict': model.state_dict(),
+    #         'train_loss': total_train_loss / len(TrainImgLoader),
+    #     }, savefilename)
+    #
+    #     dict_save[epoch] = total_train_loss
+    #
+    # print(dict_save)
+    # print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
 
     # ------------- TEST ------------------------------------------------------------
+    file_test = open("test_sceneflow_adjusted.txt", "w")
     total_test_loss = 0
     for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
         test_loss = test(imgL, imgR, disp_L)
-        # print('Iter %d test loss = %.3f' %(batch_idx, test_loss))
+        print('Iter %d test loss = %.3f' %(batch_idx, test_loss))
         total_test_loss += float(test_loss)
-
+        tot_str = str(test_loss) + ', '
+        file_test.write(tot_str)
+    file_test.close()
     print('total test loss = %.3f' % (total_test_loss / len(TestImgLoader)))
     # ----------------------------------------------------------------------------------
     # SAVE test information
