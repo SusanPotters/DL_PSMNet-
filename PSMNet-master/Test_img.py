@@ -12,6 +12,56 @@ import math
 from models import *
 import cv2
 from PIL import Image
+import chardet
+import re
+
+def readPFM(file):
+    file = open(file, 'rb')
+
+    color = None
+    width = None
+    height = None
+    scale = None
+    endian = None
+
+    header = file.readline().rstrip()
+    encode_type = chardet.detect(header)
+    header = header.decode(encode_type['encoding'])
+    if header == 'PF':
+        color = True
+    elif header == 'Pf':
+        color = False
+    else:
+        raise Exception('Not a PFM file.')
+
+    dim_match = re.match(r'^(\d+)\s(\d+)\s$', file.readline().decode(encode_type['encoding']))
+    if dim_match:
+        width, height = map(int, dim_match.groups())
+    else:
+        raise Exception('Malformed PFM header.')
+
+    scale = float(file.readline().rstrip().decode(encode_type['encoding']))
+    if scale < 0: # little-endian
+        endian = '<'
+        scale = -scale
+    else:
+        endian = '>' # big-endian
+
+    data = np.fromfile(file, endian + 'f')
+    shape = (height, width, 3) if color else (height, width)
+
+    try:
+        data = np.reshape(data, shape)
+    except:
+        print(file)
+        print("not the right shape, use only zeros")
+        data = np.zeros((540, 960))
+
+
+    data = np.flipud(data)
+    return data, scale
+
+
 
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 
@@ -34,6 +84,8 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
+parser.add_argument('--truedisp', default= './VO04_R.png')
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -117,10 +169,25 @@ def main():
             img = pred_disp[top_pad:,:]
         else:
             img = pred_disp
-        
+
+        true_disp, scaleL = readPFM(args.truedisp)
+        true_disp = np.ascontiguousarray(true_disp,dtype=np.float32)
+
+        mask = true_disp < 192
+
+        EPE_error = np.mean(np.abs(img[mask]-true_disp[mask]))
+        print(EPE_error)
+
+
         img = (img*256).astype('uint16')
+        true_img = (true_disp*256).astype('uint16')
+
+        #save images
         img = Image.fromarray(img)
         img.save('Test_disparity.png')
+
+        true_img = Image.fromarray(true_img)
+        true_img.save('Test_true_disparity.png')
 
 if __name__ == '__main__':
    main()

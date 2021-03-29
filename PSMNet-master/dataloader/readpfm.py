@@ -38,7 +38,14 @@ def readPFM(file):
     data = np.fromfile(file, endian + 'f')
     shape = (height, width, 3) if color else (height, width)
 
-    data = np.reshape(data, shape)
+    try:
+        data = np.reshape(data, shape)
+    except:
+        print(file)
+        print("not the right shape, use only zeros")
+        data = np.zeros((540, 960))
+
+
     data = np.flipud(data)
     return data, scale
 
