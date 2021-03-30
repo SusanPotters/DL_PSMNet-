@@ -193,7 +193,7 @@ def main():
     # print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
 
     # ------------- TEST ------------------------------------------------------------
-    file_test = open("test_sceneflow_monkaa_cloud.txt", "w")
+    file_test = open("test_sceneflow_scenflow_trained.txt", "w")
     total_test_loss = 0
     for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
         test_loss = test(imgL, imgR, disp_L)

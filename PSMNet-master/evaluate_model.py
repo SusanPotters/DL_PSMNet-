@@ -26,7 +26,7 @@ def plot(error_array):
     plt.savefig('error_hist_sceneflow_monkaa.png')
 
 def main():
-    error_array = read_file("trained_model_monkaa/test_sceneflow_monkaa_cloud.txt")
+    error_array = read_file("test_sceneflow_scenflow_trained.txt")
     plot(error_array)
 
 if __name__ == '__main__':

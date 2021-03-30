@@ -42,7 +42,7 @@ def disp_map(I, img):
 def main():
   max_disp = 256
   #name of disparity image
-  disp = 'Test_true_disparity.png'
+  disp = 'Test_disparity.png'
 
   #load image
   img = cv2.imread(disp,-1)
@@ -54,7 +54,7 @@ def main():
   r = disp_map(I, img)
 
   #write to output folderput
-  output_color_disp_name = 'plots/testje_sceneflow_true.png'
+  output_color_disp_name = 'plots/testje_sceneflow.png'
   cv2.imwrite(output_color_disp_name, r)
 
 if __name__ == '__main__':
