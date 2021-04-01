@@ -19,14 +19,14 @@ def read_file(path):
 def plot(error_array):
     plt.hist(error_array, color = 'blue', edgecolor = 'black', bins = 60)
 
-    plt.title('Histogram of EPE Sceneflow')
+    plt.title('Histogram of EPE Monkaa')
     plt.xlabel('End-point-error')
     plt.ylabel('Samples')
     plt.tight_layout()
     plt.savefig('error_hist_sceneflow_monkaa.png')
 
 def main():
-    error_array = read_file("test_sceneflow_scenflow_trained.txt")
+    error_array = read_file("trained_model_monkaa/test_sceneflow_monkaa_cloud.txt")
     plot(error_array)
 
 if __name__ == '__main__':

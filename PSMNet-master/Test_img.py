@@ -14,6 +14,7 @@ import cv2
 from PIL import Image
 import chardet
 import re
+import matplotlib.pyplot as plt
 
 def readPFM(file):
     file = open(file, 'rb')
@@ -188,6 +189,7 @@ def main():
 
         true_img = Image.fromarray(true_img)
         true_img.save('Test_true_disparity.png')
+
 
 if __name__ == '__main__':
    main()
