@@ -43,9 +43,9 @@ if args.cuda:
 
 all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = lt.dataloader(args.datapath)
 
-# TrainImgLoader = torch.utils.data.DataLoader(
-#     DA.myImageFloder(all_left_img, all_right_img, all_left_disp, True),
-#     batch_size=1, shuffle=True, num_workers=0, drop_last=False)
+TrainImgLoader = torch.utils.data.DataLoader(
+    DA.myImageFloder(all_left_img, all_right_img, all_left_disp, True),
+    batch_size=1, shuffle=True, num_workers=0, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
     DA.myImageFloder(test_left_img, test_right_img, test_left_disp, False),
@@ -148,6 +148,7 @@ def test(imgL, imgR, disp_true):
     if len(disp_true[mask]) == 0:
         loss = 0
     else:
+        #use EPE error as loss
         loss = torch.mean(torch.abs(img[mask]-disp_true[mask]))   # F.l1_loss(img[mask],disp_true[mask]) #torch.mean(torch.abs(img[mask]-disp_true[mask]))  # end-point-error
         loss = loss.data.cuda()
 
@@ -162,35 +163,35 @@ def adjust_learning_rate(optimizer, epoch):
 
 
 def main():
-    # start_full_time = time.time()
-    # for epoch in range(0, args.epochs):
-    #     print('This is %d-th epoch' % (epoch))
-    #     total_train_loss = 0
-    #     adjust_learning_rate(optimizer, epoch)
-    #
-    #     ## training ##
-    #     for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(TrainImgLoader):
-    #         start_time = time.time()
-    #
-    #         loss = train(imgL_crop, imgR_crop, disp_crop_L)
-    #         print('Iter %d training loss = %.3f , time = %.2f' %(batch_idx, loss, time.time() - start_time))
-    #         total_train_loss += float(loss)
-    #
-    #
-    #     print('epoch %d total training loss = %.3f' % (epoch, total_train_loss / len(TrainImgLoader)))
-    #
-    #     # SAVE
-    #     savefilename = args.savemodel + '/checkpoint_' + str(epoch) + '.tar'
-    #     torch.save({
-    #         'epoch': epoch,
-    #         'state_dict': model.state_dict(),
-    #         'train_loss': total_train_loss / len(TrainImgLoader),
-    #     }, savefilename)
-    #
-    #     dict_save[epoch] = total_train_loss
-    #
-    # print(dict_save)
-    # print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
+    start_full_time = time.time()
+    for epoch in range(0, args.epochs):
+        print('This is %d-th epoch' % (epoch))
+        total_train_loss = 0
+        adjust_learning_rate(optimizer, epoch)
+
+        ## training ##
+        for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(TrainImgLoader):
+            start_time = time.time()
+
+            loss = train(imgL_crop, imgR_crop, disp_crop_L)
+            print('Iter %d training loss = %.3f , time = %.2f' %(batch_idx, loss, time.time() - start_time))
+            total_train_loss += float(loss)
+
+
+        print('epoch %d total training loss = %.3f' % (epoch, total_train_loss / len(TrainImgLoader)))
+
+        # SAVE
+        savefilename = args.savemodel + '/checkpoint_' + str(epoch) + '.tar'
+        torch.save({
+            'epoch': epoch,
+            'state_dict': model.state_dict(),
+            'train_loss': total_train_loss / len(TrainImgLoader),
+        }, savefilename)
+
+        dict_save[epoch] = total_train_loss
+
+    print(dict_save)
+    print('full training time = %.2f HR' % ((time.time() - start_full_time) / 3600))
 
     # ------------- TEST ------------------------------------------------------------
     file_test = open("test_sceneflow_scenflow_trained.txt", "w")
