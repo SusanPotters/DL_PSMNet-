@@ -25,7 +25,7 @@ In addition to evaluating the pre-trained model, we have trained two models ours
 We found that by training for five epochs, an EPE of 1.293 was achieved. Considering that the authors trained for ten epochs with a batch size of 12, we come vert close to their results with less resources. Additionally, the model trained on the Monkaa dataset achieves an EPE of 3.213.
 
 ### Tests on unseen data
-...
+After training, the models were tested on some unseen data of motor blades.
 
 ## Usage
 
